@@ -23,17 +23,30 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 /** Palette offered when the user recolours a single slice. */
 private val PICKER_COLORS = listOf(
@@ -343,5 +356,101 @@ fun AboutSection(textColor: Color = DEFAULT_TEXT_COLOR) {
             color = textColor,
             fontWeight = FontWeight.Bold
         )
+    }
+}
+
+/**
+ * Winner celebration as a DEDICATED FULL SCREEN — not a popup.
+ * It replaces the whole screen, so no button behind it (Settings,
+ * colour pickers, anything) can be tapped while it is shown.
+ * The winner is celebrated with animation, confetti and vibration,
+ * and leaves only through the Continue button.
+ */
+@Composable
+fun WinnerCelebrationScreen(
+    winner: WheelEntry,
+    eliminationMode: Boolean,
+    textColor: Color = DEFAULT_TEXT_COLOR,
+    onContinue: () -> Unit
+) {
+    val context = LocalContext.current
+    var shown by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        shown = true
+        vibrateOnce(context, 150L)
+    }
+    val scale by animateFloatAsState(
+        targetValue = if (shown) 1f else 0.6f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "winnerScale"
+    )
+    val alpha by animateFloatAsState(
+        targetValue = if (shown) 1f else 0f,
+        animationSpec = tween(600),
+        label = "winnerAlpha"
+    )
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DARK_PURPLE_BACKGROUND),
+        contentAlignment = Alignment.Center
+    ) {
+        ConfettiDots()
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(24.dp)
+        ) {
+            Text(
+                "Winner!",
+                color = Color(0xFFFFD700),
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.alpha(alpha)
+            )
+            Text(
+                winner.text,
+                color = textColor,
+                fontSize = 44.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .scale(scale)
+                    .alpha(alpha)
+            )
+            Text(
+                "Celebrating the spin — this entry takes the win!",
+                color = textColor.copy(alpha = 0.8f),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.alpha(alpha)
+            )
+            if (eliminationMode) {
+                Text(
+                    "Elimination mode: this entry will be removed.",
+                    color = textColor.copy(alpha = 0.8f),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.alpha(alpha)
+                )
+            }
+            Spacer(Modifier.height(12.dp))
+            Button(
+                onClick = {
+                    vibrateOnce(context, 60L)
+                    onContinue()
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFFFD700),
+                    contentColor = Color(0xFF2D0A4E)
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .alpha(alpha)
+            ) {
+                Text("Continue", fontWeight = FontWeight.Bold)
+            }
+        }
     }
 }

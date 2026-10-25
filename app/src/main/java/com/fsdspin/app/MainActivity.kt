@@ -5,9 +5,14 @@ import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,8 +27,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -46,6 +49,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 
@@ -72,7 +76,9 @@ fun FsdSpinApp() {
     }
 
     // Opening animation (every launch) then, only on the very first
-    // launch, the one-time survey. After that, straight to the wheel.
+    // launch, the one-time onboarding. After that, straight to the wheel.
+    // Phase transitions are smoothly animated (fade + scale) so the
+    // app never cuts abruptly from one stage to the next.
     var showSplash by remember { mutableStateOf(true) }
     var surveyDone by remember {
         mutableStateOf(prefs.getBoolean(KEY_SURVEY_DONE, false))
@@ -81,29 +87,38 @@ fun FsdSpinApp() {
     val sounds = remember { WheelSounds(context) }
     DisposableEffect(Unit) { onDispose { sounds.release() } }
 
-    // Unity Ads: initialised once. Until a real Game ID is set in Ads.kt,
-    // this is a safe no-op and no ad is ever shown.
+    // Unity Ads: initialised once at launch.
     LaunchedEffect(Unit) { UnityAdsManager.initialize(context) }
 
-    if (showSplash) {
-        SplashScreen(onFinished = { showSplash = false })
-        return
+    val phase = when {
+        showSplash -> 0
+        !surveyDone -> 1
+        else -> 2
     }
-    if (!surveyDone) {
-        SurveyScreen(
-            onComplete = { source, birthYear ->
-                prefs.edit()
-                    .putString("survey_source", source)
-                    .putInt("survey_birth_year", birthYear)
-                    .putBoolean(KEY_SURVEY_DONE, true)
-                    .apply()
-                surveyDone = true
-            }
-        )
-        return
+    AnimatedContent(
+        targetState = phase,
+        transitionSpec = {
+            (fadeIn(animationSpec = tween(400)) +
+                scaleIn(initialScale = 0.97f)) togetherWith
+                fadeOut(animationSpec = tween(300))
+        },
+        label = "phase"
+    ) { currentPhase ->
+        when (currentPhase) {
+            0 -> SplashScreen(onFinished = { showSplash = false })
+            1 -> OnboardingScreen(
+                onComplete = { source, birthYear ->
+                    prefs.edit()
+                        .putString("survey_source", source)
+                        .putInt("survey_birth_year", birthYear)
+                        .putBoolean(KEY_SURVEY_DONE, true)
+                        .apply()
+                    surveyDone = true
+                }
+            )
+            else -> MainContent(sounds = sounds, activity = activity)
+        }
     }
-
-    MainContent(sounds = sounds, activity = activity)
 }
 
 @Composable
@@ -198,6 +213,15 @@ private fun MainContent(sounds: WheelSounds, activity: Activity?) {
                 adShowing = false
                 spin()
             }
+            // Safety timeout: if Unity never calls back (stuck load),
+            // the spin still starts after 10 seconds — never blocked.
+            scope.launch {
+                delay(10_000L)
+                if (adShowing) {
+                    adShowing = false
+                    spin()
+                }
+            }
         } else {
             spin()
         }
@@ -231,7 +255,28 @@ private fun MainContent(sounds: WheelSounds, activity: Activity?) {
                 .fillMaxSize()
                 .background(backgroundColor)
         ) {
-            when (screen) {
+            val winner = resultEntry
+            if (winner != null) {
+                // Dedicated celebration screen (not a popup): it
+                // replaces the whole screen, so no button behind it
+                // can be tapped while it is shown.
+                WinnerCelebrationScreen(
+                    winner = winner,
+                    eliminationMode = eliminationMode,
+                    textColor = textColor,
+                    onContinue = { dismissResult() }
+                )
+            } else {
+                AnimatedContent(
+                    targetState = screen,
+                    transitionSpec = {
+                        (fadeIn(animationSpec = tween(350)) +
+                            scaleIn(initialScale = 0.96f)) togetherWith
+                            fadeOut(animationSpec = tween(250))
+                    },
+                    label = "screen"
+                ) { currentScreen ->
+                    when (currentScreen) {
                 AppScreen.Wheel -> {
                     Column(
                         modifier = Modifier
@@ -464,6 +509,18 @@ private fun MainContent(sounds: WheelSounds, activity: Activity?) {
                             "FSD SPIN is free, supported by ads.",
                             color = textColor.copy(alpha = 0.7f)
                         )
+                        // Live Unity status, so a missing ad can be
+                        // diagnosed instead of guessed at.
+                        Text(
+                            "Ads status: " + if (!UnityAdsManager.adsReady) {
+                                "Not ready"
+                            } else if (UnityAdsManager.isAdLoaded) {
+                                "Ready — ad loaded"
+                            } else {
+                                "Ready — waiting for ad"
+                            } + " (" + UnityAdsManager.lastError + ")",
+                            color = textColor.copy(alpha = 0.7f)
+                        )
                         AboutSection(textColor = textColor)
                         Spacer(Modifier.height(16.dp))
                         Text(
@@ -477,48 +534,6 @@ private fun MainContent(sounds: WheelSounds, activity: Activity?) {
                         Spacer(Modifier.height(8.dp))
                     }
                 }
-            }
-
-            // Winner result overlay.
-            resultEntry?.let { winner ->
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = DARK_PURPLE_SURFACE
-                        ),
-                        modifier = Modifier.padding(32.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                "Winner!",
-                                color = textColor,
-                                fontSize = 26.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                winner.text,
-                                color = textColor,
-                                fontSize = 30.sp,
-                                fontWeight = FontWeight.Bold,
-                                textAlign = TextAlign.Center
-                            )
-                            if (eliminationMode) {
-                                Spacer(Modifier.height(8.dp))
-                                Text(
-                                    "Elimination mode: this entry will be removed.",
-                                    color = textColor
-                                )
-                            }
-                            Spacer(Modifier.height(16.dp))
-                            Button(onClick = { dismissResult() }) { Text("OK") }
-                        }
                     }
                 }
             }

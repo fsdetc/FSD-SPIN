@@ -2,6 +2,9 @@ package com.fsdspin.app
 
 import android.app.Activity
 import android.content.Context
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.unity3d.ads.IUnityAdsInitializationListener
 import com.unity3d.ads.IUnityAdsLoadListener
 import com.unity3d.ads.IUnityAdsShowListener
@@ -31,6 +34,16 @@ object UnityAdsManager {
     /** True when an interstitial is preloaded and ready to show at once. */
     private var adLoaded: Boolean = false
 
+    /** Readable in Settings, so the user can see why an ad did not show. */
+    val isAdLoaded: Boolean get() = adLoaded
+
+    /**
+     * Last Unity status, shown in Settings for diagnosis: "Ready",
+     * "Not initialized yet", or the exact init/load/show failure text.
+     */
+    var lastError by mutableStateOf("Not initialized yet")
+        private set
+
     fun initialize(context: Context) {
         try {
             UnityAds.initialize(
@@ -40,6 +53,7 @@ object UnityAdsManager {
                 object : IUnityAdsInitializationListener {
                     override fun onInitializationComplete() {
                         adsReady = true
+                        lastError = "Ready"
                         preload()
                     }
 
@@ -48,6 +62,7 @@ object UnityAdsManager {
                         message: String
                     ) {
                         adsReady = false
+                        lastError = "Init failed: $message"
                     }
                 }
             )
@@ -73,6 +88,7 @@ object UnityAdsManager {
                         message: String
                     ) {
                         adLoaded = false
+                        lastError = "Load failed: $message"
                     }
                 }
             )
@@ -99,6 +115,7 @@ object UnityAdsManager {
                 message: String
             ) {
                 adLoaded = false
+                lastError = "Show failed: $message"
                 preload()
                 onFinished()
             }
@@ -140,6 +157,7 @@ object UnityAdsManager {
                             error: UnityAds.UnityAdsLoadError,
                             message: String
                         ) {
+                            lastError = "Load failed: $message"
                             onFinished()
                         }
                     }
