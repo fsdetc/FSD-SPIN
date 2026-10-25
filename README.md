@@ -64,6 +64,31 @@ No web view, no hybrid wrapper — a real native Android app.
   behaviour was removed, so ads never show twice for one spin.
 - Test mode is OFF, so real ads are served.
 
+## v1.3 — ads never block a spin + ads status in Settings
+
+- Safety timeout: if Unity never calls back for an ad (stuck load),
+  the spin starts after 10 seconds anyway.
+- Settings now shows a live "Ads status" line (Ready / Not ready /
+  ad loaded, plus the exact Unity failure text when one occurs), so a
+  missing ad can be diagnosed instead of guessed at.
+
+## v1.3 — premium onboarding + celebration screens
+
+- Onboarding (first launch only, replacing the old survey popup):
+  smooth animated welcome -> birth-year selection (+ optional
+  where-you-found-us chips) -> Continue click with vibration ->
+  verifying animation (age verified, then onboarding verified) ->
+  full-screen fast party congratulations animation -> enter the app.
+  No popup dialog anywhere in onboarding.
+- Winner result is now a dedicated full celebration screen (not a
+  popup): winner name big with spring animation, confetti, vibration,
+  and a Continue button. Because it replaces the whole screen, no
+  button behind it (Settings, colours, anything) can be tapped while
+  it is shown.
+- Smooth animated transitions everywhere: splash -> onboarding ->
+  wheel, and between wheel / edit / designs / settings screens
+  (fade + slight scale), so the app always feels premium.
+
 ## Build it
 
 ### Option A — Android Studio (recommended)
