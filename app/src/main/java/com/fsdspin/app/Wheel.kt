@@ -31,12 +31,12 @@ fun SpinWheel(
     entries: List<WheelEntry>,
     template: WheelTemplate,
     rotationDegrees: Float,
-    size: Dp = 320.dp,
+    wheelSize: Dp = 320.dp,
     onTap: () -> Unit
 ) {
     Canvas(
         modifier = Modifier
-            .size(size)
+            .size(wheelSize)
             .pointerInput(Unit) {
                 detectTapGestures { onTap() }
             }
