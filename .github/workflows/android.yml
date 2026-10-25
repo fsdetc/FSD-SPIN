@@ -7,6 +7,9 @@ name: Build FSD SPIN APK
 # Note: GitHub's ubuntu runners already ship with an Android SDK
 # preinstalled (ANDROID_HOME is set), so no separate SDK setup step
 # is used here — that step was failing on the runner image.
+#
+# The APK is renamed to FSD-SPIN.apk before upload, so downloads
+# carry the real app name instead of app-debug.apk.
 on:
   push:
     branches: ["main"]
@@ -28,8 +31,10 @@ jobs:
           gradle-version: 8.7
       - name: Build debug APK
         run: gradle assembleDebug
+      - name: Rename APK to the real app name
+        run: cp app/build/outputs/apk/debug/app-debug.apk FSD-SPIN.apk
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: fsd-spin-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: FSD-SPIN-apk
+          path: FSD-SPIN.apk
