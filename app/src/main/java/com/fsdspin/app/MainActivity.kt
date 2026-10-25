@@ -5,7 +5,6 @@ import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -273,16 +272,18 @@ private fun MainContent(sounds: WheelSounds, activity: Activity?) {
                                 )
                                 // Small brand label in the corner of the
                                 // wheel, visible only while spinning.
-                                AnimatedVisibility(
-                                    visible = spinning,
-                                    modifier = Modifier.align(Alignment.TopEnd)
-                                ) {
+                                // Plain conditional (not AnimatedVisibility):
+                                // the animated overload does not compile
+                                // inside this nested Box scope.
+                                if (spinning) {
                                     Text(
                                         "FSD ETC",
                                         color = Color(0xFFFFD700),
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(8.dp)
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .padding(8.dp)
                                     )
                                 }
                             }
