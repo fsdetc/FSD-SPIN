@@ -14,14 +14,55 @@ data class WheelEntry(
     val color: Color get() = Color(colorArgb)
 }
 
-/** A full visual style for the wheel: rim, hub, segment palette, background. */
+/** A full visual style for the wheel: rim (plate), hub, segment palette, background. */
 data class WheelTemplate(
     val name: String,
     val rim: Color,
     val hub: Color,
     val pointer: Color,
     val background: Color,
-    val palette: List<Color>
+    val palette: List<Color>,
+    /** Thickness of the rim/plate as a fraction of the radius. Gold Plate is thicker. */
+    val rimFraction: Float = 0.06f
+)
+
+/** Default dark-purple app background (dark purple, never plain black). */
+val DARK_PURPLE_BACKGROUND = Color(0xFF2D0A4E)
+val DARK_PURPLE_SURFACE = Color(0xFF1E0736)
+val DEFAULT_TEXT_COLOR = Color(0xFFFFFFFF)
+
+/** Background colours offered in Settings (dark purples first). */
+val BACKGROUND_OPTIONS = listOf(
+    Color(0xFF2D0A4E),
+    Color(0xFF1E0736),
+    Color(0xFF3B0F66),
+    Color(0xFF4A148C),
+    Color(0xFF12081F),
+    Color(0xFF0F2027),
+    Color(0xFF1A1A1A),
+    Color(0xFF2E2E2E)
+)
+
+/** Text colours offered in Settings. */
+val TEXT_COLOR_OPTIONS = listOf(
+    Color(0xFFFFFFFF),
+    Color(0xFFFFD700),
+    Color(0xFF00E5FF),
+    Color(0xFFFF80AB),
+    Color(0xFFB2FF59),
+    Color(0xFFE0E0E0)
+)
+
+/** Plate (rim) colours offered in Settings — overrides the template rim. */
+val PLATE_COLOR_OPTIONS = listOf(
+    Color(0xFFFFD700),
+    Color(0xFFC0C0C0),
+    Color(0xFF8E24AA),
+    Color(0xFF212121),
+    Color(0xFF00BCD4),
+    Color(0xFFEC407A),
+    Color(0xFF2E7D32),
+    Color(0xFFFFFFFF)
 )
 
 val TEMPLATES: List<WheelTemplate> = listOf(
@@ -47,6 +88,33 @@ val TEMPLATES: List<WheelTemplate> = listOf(
             Color(0xFFFFD700), Color(0xFFB8860B), Color(0xFFFFEC8B),
             Color(0xFFDAA520), Color(0xFFFFF2B2), Color(0xFF8C6D00),
             Color(0xFFFFC107), Color(0xFF6D4C00)
+        )
+    ),
+    // Premium gold plate / rim style: thick gold rim, dark hub,
+    // deep gold-and-black slices — the premium showpiece design.
+    WheelTemplate(
+        name = "Gold Plate",
+        rim = Color(0xFFFFD700),
+        rimFraction = 0.11f,
+        hub = Color(0xFF1A1A1A),
+        pointer = Color(0xFFFFEA00),
+        background = Color(0xFF2D0A4E),
+        palette = listOf(
+            Color(0xFFFFD700), Color(0xFF1A1A1A), Color(0xFFFFEC8B),
+            Color(0xFF3D3200), Color(0xFFFFC107), Color(0xFF2D2D2D),
+            Color(0xFFFFE082), Color(0xFF5C4A00)
+        )
+    ),
+    WheelTemplate(
+        name = "Royal Purple",
+        rim = Color(0xFFFFD700),
+        hub = Color(0xFFFFFFFF),
+        pointer = Color(0xFFE1BEE7),
+        background = Color(0xFF2D0A4E),
+        palette = listOf(
+            Color(0xFF7B1FA2), Color(0xFFAB47BC), Color(0xFFCE93D8),
+            Color(0xFF4A148C), Color(0xFFBA68C8), Color(0xFF6A1B9A),
+            Color(0xFFE1BEE7), Color(0xFF9C27B0)
         )
     ),
     WheelTemplate(

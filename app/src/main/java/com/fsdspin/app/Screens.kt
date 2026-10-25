@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 /** Palette offered when the user recolours a single slice. */
@@ -48,15 +49,22 @@ private val PICKER_COLORS = listOf(
 @Composable
 fun EntryEditor(
     entries: List<WheelEntry>,
-    onEntriesChange: (List<WheelEntry>) -> Unit
+    onEntriesChange: (List<WheelEntry>) -> Unit,
+    textColor: Color = DEFAULT_TEXT_COLOR,
+    backgroundColor: Color = DARK_PURPLE_BACKGROUND
 ) {
     var newText by remember { mutableStateOf("") }
     LazyColumn(
-        modifier = Modifier.padding(16.dp),
+        modifier = Modifier
+            .background(backgroundColor)
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item {
-            Text("Wheel entries — tap a colour dot to change that slice colour.")
+            Text(
+                "Wheel entries — tap a colour dot to change that slice colour.",
+                color = textColor
+            )
             Spacer(Modifier.height(8.dp))
         }
         items(entries, key = { it.id }) { entry ->
@@ -138,7 +146,10 @@ fun EntryEditor(
                 ) { Text("Add") }
             }
             Spacer(Modifier.height(8.dp))
-            Text("Tip: a wheel needs at least 2 entries to spin.")
+            Text(
+                "Tip: a wheel needs at least 2 entries to spin.",
+                color = textColor
+            )
         }
     }
 }
@@ -147,13 +158,18 @@ fun EntryEditor(
 @Composable
 fun TemplatePicker(
     current: WheelTemplate,
-    onTemplateChange: (WheelTemplate) -> Unit
+    onTemplateChange: (WheelTemplate) -> Unit,
+    textColor: Color = DEFAULT_TEXT_COLOR
 ) {
     Column(
         modifier = Modifier.padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("Wheel designs — pick a template. More designs (Gold, Diamond and more) live here.")
+        Text(
+            "Wheel designs — pick a template, including the premium " +
+                "Gold Plate style with a thick gold rim.",
+            color = textColor
+        )
         TEMPLATES.forEach { template ->
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -175,7 +191,8 @@ fun TemplatePicker(
                 Spacer(Modifier.width(8.dp))
                 Text(
                     template.name +
-                        if (template.name == current.name) "  ✓" else ""
+                        if (template.name == current.name) "  ✓" else "",
+                    color = textColor
                 )
             }
         }
@@ -187,7 +204,8 @@ fun SettingRow(
     label: String,
     description: String,
     checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
+    onCheckedChange: (Boolean) -> Unit,
+    textColor: Color = DEFAULT_TEXT_COLOR
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -196,10 +214,49 @@ fun SettingRow(
             .padding(vertical = 4.dp)
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(label)
-            Text(description, color = Color.Gray)
+            Text(label, color = textColor)
+            Text(description, color = textColor.copy(alpha = 0.7f))
         }
         Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
+/**
+ * A row of colour dots for Settings customisation. [selected] may be
+ * null (meaning "use the template default"); in that case no dot is
+ * marked as selected.
+ */
+@Composable
+fun ColorPickerRow(
+    label: String,
+    colors: List<Color>,
+    selected: Color?,
+    onColorChange: (Color) -> Unit,
+    textColor: Color = DEFAULT_TEXT_COLOR
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(label, color = textColor, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(4.dp))
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            colors.forEach { colour ->
+                val isSelected = selected != null && colour.value == selected.value
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(colour)
+                        .border(
+                            width = if (isSelected) 3.dp else 1.dp,
+                            color = if (isSelected) Color.White else Color.Gray,
+                            shape = CircleShape
+                        )
+                        .clickable { onColorChange(colour) }
+                )
+            }
+        }
     }
 }
 
@@ -212,16 +269,17 @@ fun SettingRow(
 fun ForceWinnerPicker(
     entries: List<WheelEntry>,
     forcedId: Long?,
-    onForcedChange: (Long?) -> Unit
+    onForcedChange: (Long?) -> Unit,
+    textColor: Color = DEFAULT_TEXT_COLOR
 ) {
     var expanded by remember { mutableStateOf(false) }
     val selected = entries.firstOrNull { it.id == forcedId }?.text ?: "Random (no force)"
     Column(modifier = Modifier.fillMaxWidth()) {
-        Text("Host control — force winner (optional)")
+        Text("Host control — force winner (optional)", color = textColor)
         Text(
             "When set, the wheel always lands on this entry. " +
                 "Leave it on Random for a fair spin.",
-            color = Color.Gray
+            color = textColor.copy(alpha = 0.7f)
         )
         Spacer(Modifier.height(4.dp))
         OutlinedButton(onClick = { expanded = true }) { Text(selected) }
@@ -237,5 +295,53 @@ fun ForceWinnerPicker(
                 )
             }
         }
+    }
+}
+
+/**
+ * About FSD ETC, taken from the official site fsdetc.web.app.
+ * FSD SPIN will also be published on that site.
+ */
+@Composable
+fun AboutSection(textColor: Color = DEFAULT_TEXT_COLOR) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("About FSD ETC", color = textColor, fontWeight = FontWeight.Bold)
+        Text(
+            "FSD ETC makes Android apps. One app is live today — FSD Studio, " +
+                "a Minecraft Skin Studio for Android: find any player's skin, " +
+                "pose it, render it, make it yours. More apps are on the way, " +
+                "and FSD SPIN will also be published on fsdetc.web.app.",
+            color = textColor
+        )
+        Text(
+            "Our channel & community",
+            color = textColor,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            "• 315+ YouTube subscribers\n" +
+                "• 80+ Discord community members\n" +
+                "• Support for every FSD ETC app runs through our Discord " +
+                "server — join via fsdetc.web.app.",
+            color = textColor
+        )
+        Text(
+            "FSD Studio — our live app",
+            color = textColor,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            "Minecraft Skin Studio for Android: search any player's skin by " +
+                "username or upload a skin file, create pose, studio and mob " +
+                "renders, edit skins, and download your creations in high " +
+                "quality. Version 2.2.1 · Android 7.0+ · about 5.7 MB · " +
+                "free to start, no card needed.",
+            color = textColor
+        )
+        Text(
+            "Official site: fsdetc.web.app",
+            color = textColor,
+            fontWeight = FontWeight.Bold
+        )
     }
 }

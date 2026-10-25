@@ -9,11 +9,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -23,8 +22,11 @@ import kotlin.math.sin
 
 /**
  * The spinning wheel itself. Drawn on Canvas: coloured slices, entry
- * text along each slice, a rim, a centre hub and a pointer at the top.
+ * text along each slice, a rim (plate), a centre hub and a pointer at the top.
  * Tapping the wheel also spins it.
+ *
+ * [plateColor] overrides the template rim when the user picks a custom
+ * plate colour in Settings; null means "use the template rim".
  */
 @Composable
 fun SpinWheel(
@@ -32,8 +34,10 @@ fun SpinWheel(
     template: WheelTemplate,
     rotationDegrees: Float,
     wheelSize: Dp = 320.dp,
+    plateColor: Color? = null,
     onTap: () -> Unit
 ) {
+    val rim = plateColor ?: template.rim
     Canvas(
         modifier = Modifier
             .size(wheelSize)
@@ -46,9 +50,10 @@ fun SpinWheel(
         val centre = Offset(size.width / 2f, size.height / 2f)
         val segment = 360f / entries.size
 
-        // Rim.
-        drawCircle(color = template.rim, radius = radius, center = centre)
-        val innerRadius = radius * 0.94f
+        // Rim (plate). Its thickness comes from the template
+        // (Gold Plate has a thicker rim than the others).
+        drawCircle(color = rim, radius = radius, center = centre)
+        val innerRadius = radius * (1f - template.rimFraction)
 
         entries.forEachIndexed { index, entry ->
             val start = rotationDegrees + index * segment
@@ -64,7 +69,7 @@ fun SpinWheel(
             // Slice divider line.
             val edge = Math.toRadians(start.toDouble())
             drawLine(
-                color = template.rim,
+                color = rim,
                 start = centre,
                 end = Offset(
                     centre.x + (innerRadius * cos(edge)).toFloat(),
@@ -84,7 +89,7 @@ fun SpinWheel(
         // Centre hub.
         drawCircle(color = template.hub, radius = radius * 0.16f, center = centre)
         drawCircle(
-            color = template.rim,
+            color = rim,
             radius = radius * 0.16f,
             center = centre,
             style = androidx.compose.ui.graphics.drawscope.Stroke(width = 4f)
