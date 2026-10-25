@@ -24,9 +24,35 @@ No web view, no hybrid wrapper — a real native Android app.
 - **Elimination mode** — after each spin the winner is removed, so the
   next spin picks someone else. With 10 names: spin 1 removes one name,
   spin 2 removes the next, and so on.
-- **Designs / templates** — Classic, **Gold**, **Diamond**, Neon, Candy
-  and Forest. Each template recolours the rim, hub, pointer, background
-  and all slices at once. Add more templates in `Models.kt` (`TEMPLATES`).
+- **Designs / templates** — Classic, **Gold**, **Gold Plate** (premium
+  thick gold rim), **Royal Purple**, **Diamond**, Neon, Candy and Forest.
+  Each template recolours the rim, hub, pointer, background and all
+  slices at once. Add more templates in `Models.kt` (`TEMPLATES`).
+
+## v1.1 — premium update
+
+- **Dark purple UI throughout** — dark purple backgrounds (never plain
+  black), white text by default, gold accents, app name "FSD SPIN" and
+  "by FSD ETC" shown clearly on the wheel screen. The wheel is centred
+  vertically between the header and the bottom controls.
+- **Customisation in Settings** — background colour, text colour, plate
+  (rim) colour (or "Use template rim instead") and wheel design.
+- **Haptics** — one vibration on every tap on the wheel.
+- **Opening animation** — on every launch, "Made by FSD ETC" animates in
+  with a vibration, then the app opens.
+- **First-launch survey (once only)** — where you found the app
+  (YouTube, Discord, AI, Instagram, Friend, Other) and birth year only.
+  Continue → spinning loading animation → popup with a vibration:
+  setup complete, app ready to use. Answers are stored on the device
+  only (SharedPreferences) — this is an offline app, nothing is sent
+  anywhere.
+- **Settings page** — About FSD ETC section (from fsdetc.web.app) and
+  "Made by FSD ETC" at the very bottom.
+- **Unity Ads** — free app, with ads. Unity Ads SDK is integrated
+  (`Ads.kt`): an interstitial is shown every 3rd spin. **Before ads go
+  live, paste the real Unity Game ID into `Ads.kt`** (it currently holds
+  a placeholder, which safely disables ads until then) and set test
+  mode to false for the release build.
 
 ## Build it
 
@@ -43,17 +69,17 @@ Push this folder to a GitHub repo (branch `main`). The workflow in
 Download it from that workflow run's **Artifacts** section and install
 it on an Android phone.
 
-## Replace the logo (when your design is ready)
+## App logo (official)
 
-Your own logo goes here, keeping the same file names:
+The official app logo is the gold wheel on a dark purple background,
+supplied by FSD ETC. It is the launcher icon:
 
-- `app/src/main/res/drawable/ic_launcher_foreground.xml` — the wheel
-  artwork (currently a placeholder wheel).
-- `app/src/main/res/values/colors.xml` — `ic_launcher_background`
-  (currently purple) is the icon background colour.
+- `app/src/main/res/mipmap-xxxhdpi/ic_launcher.png`
+- `app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png`
 
-For a PNG logo instead of a vector: in Android Studio, right-click
-`res` → New → Image Asset → Launcher Icons, and pick your PNG.
+(512×512 PNGs converted from the supplied artwork. The old placeholder
+vector wheel and adaptive-icon XMLs were removed, so the logo shows on
+all supported Android versions.)
 
 ## Project layout
 
