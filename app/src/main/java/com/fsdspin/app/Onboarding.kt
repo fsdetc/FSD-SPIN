@@ -1,11 +1,10 @@
 package com.fsdspin.app
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -458,15 +457,19 @@ fun ConfettiDots() {
             ConfettiDot(0.76f, 0.65f, 15, Color(0xFFFF80AB), 0.9f)
         )
     }
-    val infinite = rememberInfiniteTransition(label = "confetti")
-    val fall by infinite.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(4200, easing = LinearEasing)
-        ),
-        label = "fall"
-    )
+    // Simple looping fall animation (Animatable loop) — avoids the
+    // InfiniteTransition API that failed to compile in this setup.
+    val fallAnim = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            fallAnim.animateTo(
+                1f,
+                animationSpec = tween(4200, easing = LinearEasing)
+            )
+            fallAnim.snapTo(0f)
+        }
+    }
+    val fall = fallAnim.value
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val width = maxWidth
         val height = maxHeight
