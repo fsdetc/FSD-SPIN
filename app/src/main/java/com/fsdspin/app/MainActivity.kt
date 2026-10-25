@@ -180,10 +180,26 @@ private fun MainContent(sounds: WheelSounds, activity: Activity?) {
             entries = entries.filter { it.id != winner.id }
             if (forcedId == winner.id) forcedId = null
         }
-        // Free app, with ads: an interstitial every 3rd spin (no-op
-        // until a real Unity Game ID is configured in Ads.kt).
-        if (spinCount > 0 && spinCount % 3 == 0) {
-            activity?.let { UnityAdsManager.showInterstitial(it) }
+        // Ads no longer show here: since v1.2 they show on the SPIN
+        // button click, before the spin starts (see below).
+    }
+
+    // SPIN button flow (free app, with ads): tapping SPIN first shows
+    // an interstitial ad; the wheel spins as soon as the ad closes.
+    // If no ad is ready, the spin starts at once — never blocked.
+    // (Tapping the wheel itself spins directly, without an ad.)
+    var adShowing by remember { mutableStateOf(false) }
+    fun onSpinButtonClick() {
+        if (spinning || adShowing || entries.size < 2) return
+        val act = activity
+        if (act != null && UnityAdsManager.adsReady) {
+            adShowing = true
+            UnityAdsManager.showInterstitial(act) {
+                adShowing = false
+                spin()
+            }
+        } else {
+            spin()
         }
     }
 
@@ -290,8 +306,9 @@ private fun MainContent(sounds: WheelSounds, activity: Activity?) {
                         }
                         if (controlsVisible) {
                             Button(
-                                onClick = { spin() },
-                                enabled = !spinning && entries.size >= 2,
+                                onClick = { onSpinButtonClick() },
+                                enabled = !spinning && !adShowing &&
+                                    entries.size >= 2,
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = Color(0xFFFFD700),
                                     contentColor = Color(0xFF2D0A4E)
@@ -299,7 +316,9 @@ private fun MainContent(sounds: WheelSounds, activity: Activity?) {
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
-                                    if (spinning) "Spinning…" else "SPIN",
+                                    if (spinning) "Spinning…"
+                                    else if (adShowing) "Loading ad…"
+                                    else "SPIN",
                                     fontWeight = FontWeight.Bold
                                 )
                             }

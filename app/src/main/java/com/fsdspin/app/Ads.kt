@@ -10,40 +10,37 @@ import com.unity3d.ads.UnityAds
 /**
  * Unity Ads integration for FSD SPIN — the app is free, with ads.
  *
- * IMPORTANT: replace [GAME_ID] with the real Game ID from the Unity
- * dashboard (Unity Ads > Monetization > your Android game) once the
- * Unity account is connected. Until then the placeholder below keeps
- * ads disabled: initialisation fails gracefully and the app simply
- * never shows an ad — it never crashes or blocks the wheel.
+ * Live setup (Unity Dashboard, project "FSD SPIN", Android):
+ * - Game ID: 800410936
+ * - Interstitial placement: BP_Interstitial_Android (status: Active)
+ * - Audience: general audience (not primarily targeted to children)
  *
- * Test mode is ON while the placeholder is in place, so no real
- * impressions are served during development.
- *
- * Placements use Unity's standard Android names; if the dashboard
- * renames them, update the two constants below to match.
+ * How ads are shown: tapping the SPIN button first tries to show an
+ * interstitial; the wheel spins as soon as the ad closes. If no ad is
+ * loaded or anything fails, [onFinished] runs immediately, so a spin
+ * is never blocked by an ad. Test mode is OFF, so real ads are served.
  */
 object UnityAdsManager {
-    // TODO: paste the real Unity Game ID here after connecting the account.
-    const val GAME_ID = "YOUR_UNITY_GAME_ID"
-    private const val INTERSTITIAL_PLACEMENT = "Interstitial_Android"
+    const val GAME_ID = "800410936"
+    private const val INTERSTITIAL_PLACEMENT = "BP_Interstitial_Android"
 
-    /** True only when a real Game ID has been set AND init succeeded. */
+    /** True only when init succeeded with the real Game ID. */
     var adsReady: Boolean = false
         private set
 
-    private val isConfigured: Boolean
-        get() = GAME_ID != "YOUR_UNITY_GAME_ID" && GAME_ID.isNotBlank()
+    /** True when an interstitial is preloaded and ready to show at once. */
+    private var adLoaded: Boolean = false
 
     fun initialize(context: Context) {
-        if (!isConfigured) return
         try {
             UnityAds.initialize(
                 context,
                 GAME_ID,
-                true, // test mode until the real launch build
+                false, // test mode OFF: real ads for the live app
                 object : IUnityAdsInitializationListener {
                     override fun onInitializationComplete() {
                         adsReady = true
+                        preload()
                     }
 
                     override fun onInitializationFailed(
@@ -59,48 +56,15 @@ object UnityAdsManager {
         }
     }
 
-    /**
-     * Shows one interstitial ad if ads are ready. Silent no-op otherwise,
-     * so the game flow is never interrupted by an ad failure.
-     */
-    fun showInterstitial(activity: Activity) {
-        if (!adsReady) return
+    /** Preloads an interstitial so the SPIN button can show one at once. */
+    private fun preload() {
+        if (!adsReady || adLoaded) return
         try {
             UnityAds.load(
                 INTERSTITIAL_PLACEMENT,
                 object : IUnityAdsLoadListener {
                     override fun onUnityAdsAdLoaded(placementId: String) {
-                        try {
-                            UnityAds.show(
-                                activity,
-                                placementId,
-                                object : IUnityAdsShowListener {
-                                    override fun onUnityAdsShowFailure(
-                                        placementId: String,
-                                        error: UnityAds.UnityAdsShowError,
-                                        message: String
-                                    ) {
-                                    }
-
-                                    override fun onUnityAdsShowStart(
-                                        placementId: String
-                                    ) {
-                                    }
-
-                                    override fun onUnityAdsShowClick(
-                                        placementId: String
-                                    ) {
-                                    }
-
-                                    override fun onUnityAdsShowComplete(
-                                        placementId: String,
-                                        state: UnityAds.UnityAdsShowCompletionState
-                                    ) {
-                                    }
-                                }
-                            )
-                        } catch (_: Exception) {
-                        }
+                        adLoaded = true
                     }
 
                     override fun onUnityAdsFailedToLoad(
@@ -108,10 +72,81 @@ object UnityAdsManager {
                         error: UnityAds.UnityAdsLoadError,
                         message: String
                     ) {
+                        adLoaded = false
                     }
                 }
             )
         } catch (_: Exception) {
+            adLoaded = false
+        }
+    }
+
+    /**
+     * Shows one interstitial ad if one is ready, then always runs
+     * [onFinished] — on ad close, on ad failure, or immediately when
+     * no ad is available. The caller (SPIN button) spins in [onFinished],
+     * so the wheel is never stuck waiting for an ad.
+     */
+    fun showInterstitial(activity: Activity, onFinished: () -> Unit) {
+        if (!adsReady) {
+            onFinished()
+            return
+        }
+        val showListener = object : IUnityAdsShowListener {
+            override fun onUnityAdsShowFailure(
+                placementId: String,
+                error: UnityAds.UnityAdsShowError,
+                message: String
+            ) {
+                adLoaded = false
+                preload()
+                onFinished()
+            }
+
+            override fun onUnityAdsShowStart(placementId: String) {
+            }
+
+            override fun onUnityAdsShowClick(placementId: String) {
+            }
+
+            override fun onUnityAdsShowComplete(
+                placementId: String,
+                state: UnityAds.UnityAdsShowCompletionState
+            ) {
+                adLoaded = false
+                preload()
+                onFinished()
+            }
+        }
+        try {
+            if (adLoaded) {
+                adLoaded = false
+                UnityAds.show(activity, INTERSTITIAL_PLACEMENT, showListener)
+            } else {
+                // Nothing preloaded: load now, show as soon as it loads.
+                UnityAds.load(
+                    INTERSTITIAL_PLACEMENT,
+                    object : IUnityAdsLoadListener {
+                        override fun onUnityAdsAdLoaded(placementId: String) {
+                            try {
+                                UnityAds.show(activity, placementId, showListener)
+                            } catch (_: Exception) {
+                                onFinished()
+                            }
+                        }
+
+                        override fun onUnityAdsFailedToLoad(
+                            placementId: String,
+                            error: UnityAds.UnityAdsLoadError,
+                            message: String
+                        ) {
+                            onFinished()
+                        }
+                    }
+                )
+            }
+        } catch (_: Exception) {
+            onFinished()
         }
     }
 }
