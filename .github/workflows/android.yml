@@ -3,6 +3,10 @@ name: Build FSD SPIN APK
 # Builds a debug APK automatically whenever code is pushed to GitHub.
 # Download it from the workflow run's Artifacts section — no Android
 # Studio needed just to try the app.
+#
+# Note: GitHub's ubuntu runners already ship with an Android SDK
+# preinstalled (ANDROID_HOME is set), so no separate SDK setup step
+# is used here — that step was failing on the runner image.
 on:
   push:
     branches: ["main"]
@@ -19,8 +23,6 @@ jobs:
           distribution: "temurin"
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v3
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
       - name: Build debug APK
         run: gradle assembleDebug
       - name: Upload APK
