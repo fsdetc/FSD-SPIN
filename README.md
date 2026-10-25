@@ -49,10 +49,20 @@ No web view, no hybrid wrapper — a real native Android app.
 - **Settings page** — About FSD ETC section (from fsdetc.web.app) and
   "Made by FSD ETC" at the very bottom.
 - **Unity Ads** — free app, with ads. Unity Ads SDK is integrated
-  (`Ads.kt`): an interstitial is shown every 3rd spin. **Before ads go
-  live, paste the real Unity Game ID into `Ads.kt`** (it currently holds
-  a placeholder, which safely disables ads until then) and set test
-  mode to false for the release build.
+  (`Ads.kt`) with the live Unity dashboard setup (project "FSD SPIN",
+  Android Game ID 800410936, Interstitial placement
+  BP_Interstitial_Android, general audience). See v1.2 below for how
+  ads are shown.
+
+## v1.2 — live Unity Ads on the SPIN button
+
+- Tapping the **SPIN button** first shows an interstitial ad; the wheel
+  spins as soon as the ad closes. If no ad is loaded, the spin starts
+  at once — a spin is never blocked by an ad. Tapping the wheel itself
+  spins directly, without an ad.
+- The old "interstitial every 3rd spin after dismissing the result"
+  behaviour was removed, so ads never show twice for one spin.
+- Test mode is OFF, so real ads are served.
 
 ## Build it
 
